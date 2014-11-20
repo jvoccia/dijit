@@ -10,11 +10,19 @@ define([
     /* There appears to be a concurrency issue in this code. */
     /* Running 1 browser at a time until fixed */
 
+	var theme = "claro"; //nihilo,soria,tundra,claro
+	var getRemotePage = function(remote) {
+			return remote.get(require.toUrl('./support/test_Menu.html?theme=' + theme))
+                            .then(pollUntil("return window.setupComplete;"));
+	};
+
+
     var command;
     var classContains = function (classAttribute, className){
         var classes = (classAttribute || "").split(' ');
         return (array.indexOf(classes, className) >= 0);
     };
+
 
     var registerHandlerScript = function(id, event) {
         var script =
@@ -32,8 +40,7 @@ define([
         name: 'dijit.MenuBar mouse tests',
 
         'setup': function() {
-            command = this.remote.get(require.toUrl('./support/test_Menu.html'))
-                            .then(pollUntil("return window.setupComplete;"));
+            command = getRemotePage(this.remote);
         },
         'teardown': function () {
             command = null;
@@ -195,8 +202,7 @@ define([
         name: 'Navigation menu mouse tests',
 
         'setup': function() {
-            command = this.remote.get(require.toUrl('./support/test_Menu.html'))
-                            .then(pollUntil("return window.setupComplete;"));
+            command = getRemotePage(this.remote);
         },
         'teardown': function () {
             command = null;
@@ -273,8 +279,7 @@ define([
         name: 'Context menu mouse tests',
 
         'setup': function() {
-            command = this.remote.get(require.toUrl('./support/test_Menu.html'))
-                            .then(pollUntil("return window.setupComplete;"));
+            command = getRemotePage(this.remote);
         },
         'teardown': function () {
             command = null;
@@ -394,6 +399,44 @@ define([
                         assert.isFalse(displayed, "menu should be hidden again");
                     })
                 .end();
+        },
+        'check item selections (mouse)': function(){
+            return command
+                .execute(registerHandlerScript('windowContextMenuFirstChoice', 'click')).then(function(result){
+                    assert(result, "windowContextMenuFirstChoice onClick Handler Registered");
+                })
+                .findById('link')
+                    .clickMouseButton(2) //Right click
+                .end()
+                .findById('windowContextMenu')
+                    .isDisplayed().then(function (displayed){
+                        assert.isTrue(displayed, "menu should be shown");
+                    })
+                .end()
+                .findById('link')
+                    .clickMouseButton(0) //Left Click
+                .end()
+                .findById('windowContextMenu')
+                    .isDisplayed().then(function (displayed){
+                        assert.isTrue(displayed, "menu should still be shown");
+                    })
+                .end()
+                .then(pollUntil("return window.handlerCallback === 'windowContextMenuFirstChoice-onclick'", 250))
+                .then(function(result){
+                    assert.isFalse(result,"windowContextMenuFirstChoice click callback should not occur");
+                })
+                .findById('windowContextMenuFirstChoice')
+                    .click()
+                    .then(pollUntil("return window.handlerCallback === 'windowContextMenuFirstChoice-onclick'", 250))
+                    .then(function(result){
+                        assert.isTrue(result,"windowContextMenuFirstChoice click callback should occur");
+                    })
+                .end()
+                .findById('windowContextMenu')
+                    .isDisplayed().then(function (displayed){
+                        assert.isFalse(displayed, "menu should be closed");
+                    })
+                .end();
         }
     });
 
@@ -401,8 +444,7 @@ define([
         name: 'More MenuBar mouse tests',
 
         'setup': function() {
-            command = this.remote.get(require.toUrl('./support/test_Menu.html'))
-                            .then(pollUntil("return window.setupComplete;"));
+            command = getRemotePage(this.remote);
         },
         'teardown': function () {
             command = null;
@@ -709,8 +751,7 @@ define([
         name: 'passivePopupDelay',
 
         'setup': function() {
-            command = this.remote.get(require.toUrl('./support/test_Menu.html'))
-                            .then(pollUntil("return window.setupComplete;"))
+            command = getRemotePage(this.remote)
                             .execute('return window.dijit.registry.byId("menubar").set("passivePopupDelay", 300);');
         },
 
